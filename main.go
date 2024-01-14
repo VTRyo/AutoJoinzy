@@ -64,8 +64,12 @@ func getChannelNamesFromFile(filePath string) ([]string, error) {
 
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		log.Fatalf("error: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal YAML: %w", err)
 	}
+	if len(config.Channels) == 0 {
+		return nil, fmt.Errorf("There is no array of channel in the file.")
+	}
+
 	return config.Channels, nil
 }
 

@@ -6,4 +6,5 @@ require (
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/jarcoal/httpmock v1.3.1 // indirect
 	github.com/slack-go/slack v0.12.3 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
