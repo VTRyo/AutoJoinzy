@@ -16,23 +16,30 @@ func main() {
 	apiToken := os.Getenv("SLACK_TOKEN") // channels:write channels:read
 	api := slack.New(apiToken)
 
-	channelIsToJoin := getChannelNames()
-
-	for _, channelName := range channelIsToJoin {
-		channelID, err := getChannelID(api, channelName)
-		if err != nil {
-			log.Fatalf("Failed to find channel: %s, error:%v", channelName, err)
-		}
-
-		_, _, warn, err := api.JoinConversation(channelID)
-		if err != nil {
-			log.Printf("Failed to join channel: %s, error: %v", channelName, err)
-		} else if warn[0] == "already_in_channel" {
-			fmt.Printf("Already joined channel: %s\n", channelName)
-		} else {
-			fmt.Printf("Joined channel: %s\n", channelName)
-		}
+	configFilePath := "config.yaml"
+	channelsToJoin, err := getChannelNamesFromFile(configFilePath)
+	if err != nil {
+		log.Fatalf("Failed to get channel names: %v", err)
 	}
+
+	for _, channelName := range channelsToJoin {
+		handleChannel(api, channelName)
+	}
+}
+
+func handleChannel(api *slack.Client, channelName string) {
+	channelID, err := getChannelID(api, channelName)
+	if err != nil {
+		log.Printf("Failed to find channel: %s, error:%v", channelName, err)
+		return
+	}
+
+	_, _, warn, err := api.JoinConversation(channelID)
+	if err != nil {
+		handleJoinChannelError(err, channelName)
+		return
+	}
+	handleChannelSuccess(warn, channelName)
 }
 
 func getChannelID(api *slack.Client, channelName string) (string, error) {
@@ -49,9 +56,8 @@ func getChannelID(api *slack.Client, channelName string) (string, error) {
 	return "", fmt.Errorf("channel not found")
 }
 
-// Load config.yaml
-func getChannelNames() []string {
-	data, err := os.ReadFile("config.yaml")
+func getChannelNamesFromFile(filePath string) ([]string, error) {
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
@@ -60,5 +66,21 @@ func getChannelNames() []string {
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		log.Fatalf("error: %v", err)
 	}
-	return config.Channels
+	return config.Channels, nil
+}
+
+func handleJoinChannelError(err error, channelName string) {
+	if err.Error() == "is_archived" {
+		log.Printf("Channel %s is archived. Skipping...", channelName)
+		return
+	}
+	log.Printf("Failed to join channel: %s, error: %v", channelName, err)
+}
+
+func handleChannelSuccess(warn []string, channelName string) {
+	if warn[0] == "already_in_channel" {
+		fmt.Printf("Already joined channel: %s\n", channelName)
+		return
+	}
+	fmt.Printf("Joined channel: %s\n", channelName)
 }
