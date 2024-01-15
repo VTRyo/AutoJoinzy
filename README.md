@@ -2,6 +2,11 @@
 
 Join the Slack channels listed in Yaml.
 
+# Motivation
+
+With a new season comes a new breeze. This program simplifies Slack channel invitations for new participants. We onboarders have to invite new members to countless channels. Slack has an automatic channel join setting. However, if there are too many non-channels that fall under this category, they are not available. `AutoJoinzy` solves that problem!
+
+
 # How to use
 
 Download code.
