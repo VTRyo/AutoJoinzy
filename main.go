@@ -22,6 +22,7 @@ func main() {
 		log.Fatalf("Failed to get channel names: %v", err)
 	}
 
+	fmt.Println("Searching for Slack workspace channels...\n")
 	channelMap, err := getAllChannels(api)
 	if err != nil {
 		log.Fatalf("Failed to get all channels from Slack: %v", err)
@@ -33,17 +34,17 @@ func main() {
 			log.Printf("Failed to find channel: %s, error:%v", channelName, err)
 			continue
 		}
-		handleChannel(api, channelID)
+		handleChannel(api, channelID, channelName)
 	}
 }
 
-func handleChannel(api *slack.Client, channelID string) {
+func handleChannel(api *slack.Client, channelID string, channelName string) {
 	_, _, warn, err := api.JoinConversation(channelID)
 	if err != nil {
-		handleJoinChannelError(err, channelID)
+		handleJoinChannelError(err, channelName)
 		return
 	}
-	handleChannelSuccess(warn, channelID)
+	handleChannelSuccess(warn, channelName)
 }
 
 func getAllChannels(api *slack.Client) (map[string]string, error) {
@@ -68,6 +69,7 @@ func getAllChannels(api *slack.Client) (map[string]string, error) {
 		}
 		cursor = nextCursor
 	}
+	fmt.Println("Successfully got all channels from Slack\n")
 	return channelMap, nil
 }
 
