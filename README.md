@@ -26,6 +26,7 @@ Permissions are `channels:write` and `channels:read`
    3. `channels:write` and `channels:read`
 
 ![User Token Scopes](./img/user_token_scopes.png)
+
 4. Press "Install To Workspace" to install the App into the workspace
 
 ![Install To Workspace](./img/install_to_workspace.png)
