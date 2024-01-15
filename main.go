@@ -17,42 +17,65 @@ func main() {
 	api := slack.New(apiToken)
 
 	configFilePath := "config.yaml"
-	channelsToJoin, err := getChannelNamesFromFile(configFilePath)
+	channelNames, err := getChannelNamesFromFile(configFilePath)
 	if err != nil {
 		log.Fatalf("Failed to get channel names: %v", err)
 	}
 
-	for _, channelName := range channelsToJoin {
-		handleChannel(api, channelName)
+	channelMap, err := getAllChannels(api)
+	if err != nil {
+		log.Fatalf("Failed to get all channels from Slack: %v", err)
+	}
+
+	for _, channelName := range channelNames {
+		channelID, err := getChannelID(channelMap, channelName)
+		if err != nil {
+			log.Printf("Failed to find channel: %s, error:%v", channelName, err)
+			continue
+		}
+		handleChannel(api, channelID)
 	}
 }
 
-func handleChannel(api *slack.Client, channelName string) {
-	channelID, err := getChannelID(api, channelName)
-	if err != nil {
-		log.Printf("Failed to find channel: %s, error:%v", channelName, err)
-		return
-	}
-
+func handleChannel(api *slack.Client, channelID string) {
 	_, _, warn, err := api.JoinConversation(channelID)
 	if err != nil {
-		handleJoinChannelError(err, channelName)
+		handleJoinChannelError(err, channelID)
 		return
 	}
-	handleChannelSuccess(warn, channelName)
+	handleChannelSuccess(warn, channelID)
 }
 
-func getChannelID(api *slack.Client, channelName string) (string, error) {
-	channels, _, err := api.GetConversations(&slack.GetConversationsParameters{})
-	if err != nil {
-		return "", err
+func getAllChannels(api *slack.Client) (map[string]string, error) {
+	channelMap := make(map[string]string)
+	cursor := ""
+
+	for {
+		channels, nextCursor, err := api.GetConversations(&slack.GetConversationsParameters{
+			Cursor:          cursor,
+			ExcludeArchived: true,
+			Limit:           1000,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, channel := range channels {
+			channelMap[channel.Name] = channel.ID
+		}
+		if nextCursor == "" {
+			break
+		}
+		cursor = nextCursor
+	}
+	return channelMap, nil
+}
+
+func getChannelID(channelMap map[string]string, channelName string) (string, error) {
+	if id, ok := channelMap[channelName]; ok {
+		return id, nil
 	}
 
-	for _, channel := range channels {
-		if channel.Name == channelName {
-			return channel.ID, nil
-		}
-	}
 	return "", fmt.Errorf("channel not found")
 }
 
