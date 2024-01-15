@@ -6,6 +6,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
+	"time"
 )
 
 type Config struct {
@@ -22,7 +23,6 @@ func main() {
 		log.Fatalf("Failed to get channel names: %v", err)
 	}
 
-	fmt.Println("Searching for Slack workspace channels...\n")
 	channelMap, err := getAllChannels(api)
 	if err != nil {
 		log.Fatalf("Failed to get all channels from Slack: %v", err)
@@ -48,6 +48,11 @@ func handleChannel(api *slack.Client, channelID string, channelName string) {
 }
 
 func getAllChannels(api *slack.Client) (map[string]string, error) {
+	// Show progress bar
+	done := make(chan bool)
+	defer close(done)
+	go showProgressBar("Searching for Slack workspace channels...", done)
+
 	channelMap := make(map[string]string)
 	cursor := ""
 
@@ -69,7 +74,9 @@ func getAllChannels(api *slack.Client) (map[string]string, error) {
 		}
 		cursor = nextCursor
 	}
-	fmt.Println("Successfully got all channels from Slack\n")
+	done <- true
+
+	fmt.Println("\nSuccessfully got all channels from Slack\n")
 	return channelMap, nil
 }
 
@@ -112,4 +119,21 @@ func handleChannelSuccess(warn []string, channelName string) {
 		return
 	}
 	fmt.Printf("Joined channel: %s\n", channelName)
+}
+
+func showProgressBar(progressMessage string, done <-chan bool) {
+	progressChars := []string{"-", "\\", "|", "/"}
+	i := 0
+
+	for {
+		select {
+		case <-done:
+			fmt.Print("\r")
+			return
+		default:
+			fmt.Printf("\r%s %s", progressMessage, progressChars[i%len(progressChars)])
+			time.Sleep(100 * time.Millisecond)
+			i++
+		}
+	}
 }
