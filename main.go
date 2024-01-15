@@ -114,11 +114,14 @@ func handleJoinChannelError(err error, channelName string) {
 }
 
 func handleChannelSuccess(warn []string, channelName string) {
+	if warn == nil {
+		fmt.Printf("Joined channel: %s\n", channelName)
+		return
+	}
 	if warn[0] == "already_in_channel" {
 		fmt.Printf("Already joined channel: %s\n", channelName)
 		return
 	}
-	fmt.Printf("Joined channel: %s\n", channelName)
 }
 
 func showProgressBar(progressMessage string, done <-chan bool) {
